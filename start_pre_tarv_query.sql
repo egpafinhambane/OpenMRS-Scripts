@@ -4,7 +4,7 @@
 -- paramentros para teste
 set @startDate := '2018-09-21 00:00:00';
 set @endDate := '2018-12-20 00:00:00';
-set @location := 424; -- location de uma us de inhambane
+set @location := 212; -- location de uma us de inhambane
 
 select *
       from

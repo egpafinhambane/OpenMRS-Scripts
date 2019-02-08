@@ -1,6 +1,6 @@
 set @ydata := '2018-12-20';
-set @sismaLocationID := 200675; -- Maxixe
-set @openmrsLocationID := 418;
+set @sismaLocationID := 200693; -- funhalouro
+set @openmrsLocationID := 410 ;
 	
 -- update openmrs.global_property 
 -- set property_value=@sismaLocationID
@@ -10,12 +10,12 @@ set @openmrsLocationID := 418;
 -- set property_value=@ydata
 -- where property='esaudemetadata.dateToImportTo';
 
+-- SELECT location_id,COUNT(*) FROM openmrs.encounter GROUP BY location_id
 insert into openmrs.global_property (property,property_value,description,uuid) 
 values('esaudemetadata.hfc',@sismaLocationID,'health facility code',uuid());
 
 insert into openmrs.global_property (property,property_value,description,uuid)
 values('esaudemetadata.dateToImportTo',@ydata,'Date when data should be fetched to provide it',uuid());
-
 
 -- source '/home/asamuel/Documents/openmrs/schema_sp_export_modified.sql';
 
