@@ -2,7 +2,7 @@
 -- cocept 6263  - Livro 1  value_coded 6259
 -- 				- Livro 2  value_coded 6220
 -- paramentros para teste
-set @startDate := '2018-09-21 00:00:00';
+set @startDate := '2010-09-21 00:00:00';
 set @endDate := '2018-12-20 00:00:00';
 set @location := 212; -- location de uma us de inhambane
 
@@ -23,8 +23,8 @@ select *
                 if(programa_pre_tarv.patient_id is null,'NAO','SIM') registado_progr_pre_tarv,
                 if(programa_tarv.patient_id is null,'NAO','SIM') registado_progr_tarv,
                 if(inicio_tarv.patient_id is null,'NAO','SIM') iniciou_tarv,
-                saida.encounter_datetime as data_saida,
-				saida.estado as tipo_saida
+                -- saida.encounter_datetime as data_saida,
+				saida.name as tipo_saida
 				
 				
 			from	
@@ -124,23 +124,37 @@ where data_inicio between @startDate and @endDate
 				from 	patient p inner join patient_program pg on p.patient_id=pg.patient_id
 				where 	pg.voided=0 and p.voided=0 and program_id=2 and date_enrolled<=@endDate and location_id=@location
 			) programa_tarv on programa_tarv.patient_id=inicio_real.patient_id
-            	
 			 left join
 			(		
-				select 	pg.patient_id,ps.start_date encounter_datetime,location_id,
-						case ps.state
-							when 7 then 'TRANSFERIDO PARA'
-							when 8 then 'SUSPENSO'
-							when 9 then 'ABANDONO'
-							when 10 then 'OBITO'
-						else 'OUTRO' end as estado
-				from 	patient p 
-						inner join patient_program pg on p.patient_id=pg.patient_id
-						inner join patient_state ps on pg.patient_program_id=ps.patient_program_id
-				where 	pg.voided=0 and ps.voided=0 and p.voided=0 and  pg.program_id=1
-						and ps.state in (7,8,9,10) and ps.end_date is null and location_id=@location	
+            
+                select t.* from (
+						select * from
+							   (
+								SELECT pp.patient_program_id,pp.patient_id,
+								   ps.state,pws.concept_id as pws_concept_id, pp.date_enrolled,pp.date_completed,ps.start_date, 
+								   ps.end_date
+							--     ,cn.concept_id, initial,terminal,cn.name
+
+				FROM hrv.patient_state ps 
+				inner join hrv.patient_program pp on pp.patient_program_id = ps.patient_program_id
+				inner join hrv.program_workflow_state pws on pws.program_workflow_state_id = ps.state
+				-- inner join hrv.concept_name cn on cn.concept_id = pws.concept_id
+				and pp.program_id=1 ) pre_tarv 
+				left join
+			  (
+					SELECT  pg_wfs.concept_id,
+					cn.name
+					  FROM hrv.program_workflow pg_wf 
+						inner join hrv.program_workflow_state pg_wfs ON pg_wfs.program_workflow_id = pg_wf.program_workflow_id
+						inner join hrv.concept_name cn on cn.concept_id = pg_wfs.concept_id
+						and pg_wf.program_id=1 and name in ('ACTIVO NO PROGRAMA','ABANDONO','TRANSFERIDO PARA','OBITOU',
+						'TRANSFERIDO DE' ) ) estado_saida on estado_saida.concept_id=pre_tarv.pws_concept_id
+						 group by patient_id,estado_saida.concept_id,name
+						 order by patient_id, FIELD(name,'OBITOU', 'ABANDONO','TRANSFERIDO PARA','ACTIVO NO PROGRAMA')
+				) t where t.name <> ''
+							                
 			
 			) saida on saida.patient_id=inicio_real.patient_id
 
-)inicios  where registado_progr_tarv ='NAO'
+)inicios  where registado_progr_tarv ='NAO' and tipo_saida <>'ABANDONO'
 group by patient_id
